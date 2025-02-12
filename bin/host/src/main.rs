@@ -30,6 +30,8 @@ pub use reth_primitives;
 use std::{path::PathBuf, sync::Arc};
 use tracing::info_span;
 
+use openvm_sdk::{config::AggConfig, keygen::AggStarkProvingKey, prover::AggStarkProver};
+
 mod execute;
 
 mod cli;
@@ -40,9 +42,12 @@ use cli::ProviderArgs;
 #[clap(group(
     ArgGroup::new("mode")
         .required(true)
-        .args(&["prove", "execute", "tracegen", "prove_e2e"]),
+        .args(&["prove", "execute", "tracegen", "prove_e2e", "prove_agg"]),
 ))]
 struct HostArgs {
+    #[clap(long)]
+    fib_n: Option<u32>,
+
     /// The block number of the block to execute.
     #[clap(long)]
     block_number: u64,
@@ -57,6 +62,8 @@ struct HostArgs {
     prove: bool,
     #[clap(long, group = "mode")]
     prove_e2e: bool,
+    #[clap(long, group = "mode")]
+    prove_agg: bool,
 
     /// Optional path to the directory containing cached client input. A new cache file will be
     /// created from RPC data if it doesn't already exist.
@@ -180,7 +187,13 @@ async fn main() -> eyre::Result<()> {
     };
 
     let mut stdin = StdIn::default();
-    stdin.write(&client_input);
+    if let Some(n) = args.fib_n {
+        println!("Run Fibonacci: n = {n}");
+        stdin.write(&n);
+    } else {
+        // reth
+        stdin.write(&client_input);
+    }
 
     let app_log_blowup = args.benchmark.app_log_blowup.unwrap_or(DEFAULT_APP_LOG_BLOWUP);
     let max_segment_length = args.benchmark.max_segment_length.unwrap_or((1 << 23) - 100);
@@ -199,6 +212,8 @@ async fn main() -> eyre::Result<()> {
         "tracegen"
     } else if args.prove {
         "prove"
+    } else if args.prove_agg {
+        "prove_agg"
     } else {
         "prove_e2e"
     };
@@ -226,6 +241,34 @@ async fn main() -> eyre::Result<()> {
                     let proof = app_prover.generate_app_proof(stdin);
                     let app_vk = app_pk.get_app_vk();
                     sdk.verify_app_proof(&app_vk, &proof)?;
+                } else if args.prove_agg {
+                    let app_pk = sdk.app_keygen(app_config)?;
+                    let app_committed_exe = sdk.commit_app_exe(app_pk.app_fri_params(), exe)?;
+
+                    let app_prover = AppProver::new(app_pk.app_vm_pk.clone(), app_committed_exe)
+                        .with_program_name(program_name);
+
+                    let start_app = std::time::Instant::now();
+                    let proof = app_prover.generate_app_proof(stdin);
+                    let app_time = start_app.elapsed().as_secs_f32();
+                    println!("APP proof time: {}", app_time);
+
+                    let app_vk = app_pk.get_app_vk();
+                    sdk.verify_app_proof(&app_vk, &proof)?;
+
+                    let mut agg_config = args.benchmark.agg_config();
+                    agg_config.agg_stark_config.max_num_user_public_values =
+                        VmConfig::<BabyBear>::system(&vm_config).num_public_values;
+                    let AggConfig { agg_stark_config, .. } = agg_config;
+                    let (agg_stark_pk, _) =
+                        AggStarkProvingKey::dummy_proof_and_keygen(agg_stark_config);
+                    let agg_prover =
+                        AggStarkProver::new(agg_stark_pk, app_pk.leaf_committed_exe.clone());
+
+                    let start_agg = std::time::Instant::now();
+                    let _agg_proof = agg_prover.generate_agg_proof(proof);
+                    let agg_time = start_agg.elapsed().as_secs_f32();
+                    println!("AGG proof time: {}", agg_time);
                 } else {
                     let halo2_params_reader = CacheHalo2ParamsReader::new_with_default_params_dir();
                     let mut agg_config = args.benchmark.agg_config();
