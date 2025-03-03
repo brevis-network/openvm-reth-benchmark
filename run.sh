@@ -40,7 +40,9 @@ fi
 cd ../..
 
 mkdir -p rpc-cache
-MODE=prove-e2e # can be execute, tracegen, prove, or prove-e2e
+# gupeng risc-prove
+# MODE=prove-e2e # can be execute, tracegen, prove, or prove-e2e
+MODE=prove # can be execute, tracegen, prove, or prove-e2e
 PROFILE="maxperf"
 FEATURES="bench-metrics,nightly-features,jemalloc"
 
