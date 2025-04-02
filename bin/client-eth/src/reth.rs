@@ -53,7 +53,7 @@ openvm_algebra_complex_macros::complex_init! {
     Bn254Fp2 { mod_idx = 0 },
 }
 
-pub fn main() {
+pub fn run() {
     println("client-eth starting");
     // Setup secp256k1 because it is always used for recover_signers
     setup_2();
