@@ -38,7 +38,7 @@ impl bincode::Encode for StorageTries {
     }
 }
 
-impl bincode::Decode for StorageTries {
+impl<Context> bincode::Decode<Context> for StorageTries {
     fn decode<D: bincode::de::Decoder>(
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
@@ -61,7 +61,7 @@ impl bincode::Decode for StorageTries {
         Ok(Self(map))
     }
 }
-impl<'de> bincode::BorrowDecode<'de> for StorageTries {
+impl<'de, Context> bincode::BorrowDecode<'de, Context> for StorageTries {
     fn borrow_decode<D: bincode::de::BorrowDecoder<'de>>(
         decoder: &mut D,
     ) -> core::result::Result<Self, bincode::error::DecodeError> {
