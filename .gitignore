@@ -27,3 +27,5 @@ elf
 
 # Metrics
 metrics.json
+
+logs/

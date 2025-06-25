@@ -70,6 +70,9 @@ impl std::fmt::Display for BenchMode {
 /// The arguments for the host executable.
 #[derive(Debug, Parser)]
 pub struct HostArgs {
+    #[clap(long)]
+    fib_n: Option<u32>,
+
     /// The block number of the block to execute.
     #[clap(long)]
     block_number: u64,
@@ -272,7 +275,13 @@ pub async fn run_reth_benchmark<E: StarkFriEngine<SC>>(
     };
 
     let mut stdin = StdIn::default();
-    stdin.write(&client_input);
+    if let Some(n) = args.fib_n {
+        println!("Run Fibonacci: n = {n}");
+        stdin.write(&n);
+    } else {
+        // reth
+        stdin.write(&client_input);
+    }
 
     if matches!(args.mode, BenchMode::MakeInput) {
         let words: Vec<u32> = openvm::serde::to_vec(&client_input).unwrap();

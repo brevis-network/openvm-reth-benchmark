@@ -40,9 +40,9 @@ fi
 cd ../..
 
 mkdir -p rpc-cache
-MODE=prove-e2e # can be execute, tracegen, prove, or prove-e2e
+MODE=prove-evm # can be execute, tracegen, prove-app, prove-stark, prove-evm, make-input
 PROFILE="maxperf"
-FEATURES="bench-metrics,nightly-features,jemalloc"
+FEATURES="bench-metrics,nightly-features,jemalloc,evm-prove"
 
 arch=$(uname -m)
 case $arch in
@@ -58,7 +58,7 @@ x86_64 | amd64)
   ;;
 esac
 export JEMALLOC_SYS_WITH_MALLOC_CONF="retain:true,background_thread:true,metadata_thp:always,dirty_decay_ms:-1,muzzy_decay_ms:-1,abort_conf:true"
-RUSTFLAGS=$RUSTFLAGS cargo build --bin openvm-reth-benchmark --profile=$PROFILE --no-default-features --features=$FEATURES
+RUSTFLAGS=$RUSTFLAGS cargo build --bin openvm-reth-benchmark-bin --profile=$PROFILE --no-default-features --features=$FEATURES
 PARAMS_DIR="params"
 
-RUST_LOG="info,p3_=warn" OUTPUT_PATH="metrics.json" ./target/$PROFILE/openvm-reth-benchmark --kzg-params-dir $PARAMS_DIR --$MODE --block-number $BLOCK_NUMBER --chain-id 1 --cache-dir rpc-cache $EXTRA_ARGS
+RUST_LOG="info,p3_=warn" OUTPUT_PATH="metrics.json" ./target/$PROFILE/openvm-reth-benchmark-bin --kzg-params-dir $PARAMS_DIR --mode $MODE --block-number $BLOCK_NUMBER --chain-id 1 --cache-dir rpc-cache $EXTRA_ARGS

@@ -5,7 +5,7 @@ source .env
 mkdir -p ../logs
 
 # pushd openvm-benchmark
-popd
+cd ..
 
 echo "Benchmarking fibonacci"
 RPC_1=$RPC_1 APP=fibonacci bash run.sh > logs/openvm-fib_300k.log
@@ -20,5 +20,5 @@ echo "Benchmarking reth-20528709"
 RPC_1=$RPC_1 APP=reth BLOCK_NUMBER=20528709 bash run.sh > logs/openvm-reth_20528709.log
 
 # popd
-pushd bench
+cd bench
 echo "openvm benchmark complete!"
